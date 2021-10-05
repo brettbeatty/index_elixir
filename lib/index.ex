@@ -4,6 +4,51 @@ defmodule Index do
   """
 
   @doc """
+  Fetch entries from `index`.
+
+  Returns `{:ok, entries}` on the compilation pass by the index compiler, where `entries` is a list
+  of tuples containing the origin module and value of the entry. On prior compilations returns
+  `:error`.
+
+  ## Examples
+
+      Index.fetch(MyApp.MyIndex)
+      # => {:ok, [{MyApp.SomeModule, []}, {MyApp.SomeModule, "some value"}]}
+
+  """
+  defmacro fetch(index) do
+    case :ets.whereis(Index.Indices) do
+      :undefined ->
+        unless Module.has_attribute?(__CALLER__.module, :index_recompile?) do
+          Module.register_attribute(__CALLER__.module, :index_recompile?, persist: true)
+          Module.put_attribute(__CALLER__.module, :index_recompile?, true)
+        end
+
+        quote do
+          # don't warn if index unused
+          _ = unquote(index)
+          :error
+        end
+
+      ref when is_reference(ref) ->
+        quote do
+          index = unquote(index)
+
+          entries =
+            case :ets.lookup(Index.Indices, index) do
+              [{^index, entries}] ->
+                entries
+
+              [] ->
+                []
+            end
+
+          {:ok, entries}
+        end
+    end
+  end
+
+  @doc """
   Add entry with `value` to `index`.
 
   An index name can be any compile-time constant, but it must be unique to your intended use.

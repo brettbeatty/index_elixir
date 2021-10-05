@@ -1,9 +1,57 @@
 defmodule IndexTest do
   use ExUnit.Case, async: true
 
-  defmodule TestModule do
+  defp define_fetch_test_module! do
+    :code.purge(IndexTest.Fetch)
+    :code.delete(IndexTest.Fetch)
+
+    defmodule Fetch do
+      require Index
+
+      index = Alfa
+
+      case Index.fetch(index) do
+        {:ok, entries} ->
+          @entries Map.new(entries)
+          def entries, do: @entries
+
+        :error ->
+          def entries, do: raise("module not recompiled")
+      end
+    end
+  end
+
+  describe "fetch/1" do
+    test "flags module for recompilation" do
+      define_fetch_test_module!()
+
+      assert {:index_recompile?, [true]} in IndexTest.Fetch.module_info(:attributes)
+    end
+
+    test "returns :error if not recompiled" do
+      define_fetch_test_module!()
+
+      assert_raise RuntimeError, "module not recompiled", fn ->
+        apply(IndexTest.Fetch, :entries, [])
+      end
+    end
+
+    test "returns {:ok, entries} when recompiled" do
+      Index.Indices = :ets.new(Index.Indices, [:named_table])
+      :ets.insert(Index.Indices, {Alfa, [{Charlie, "ac"}, {Delta, "ad"}]})
+      :ets.insert(Index.Indices, {Bravo, [{Charlie, "bc"}, {Delta, "bd"}]})
+
+      define_fetch_test_module!()
+
+      expected = %{Charlie => "ac", Delta => "ad"}
+
+      assert apply(IndexTest.Fetch, :entries, []) == expected
+    end
+  end
+
+  defmodule Entry do
     import Index, only: [index: 1, index: 2]
-    alias IndexTest.TestModule.Nested
+    alias IndexTest.Entry.Nested
 
     @attr "some attr"
     var = "some var"
@@ -28,12 +76,12 @@ defmodule IndexTest do
   end
 
   defp entries do
-    for {:index_entries, [entry]} <- TestModule.module_info(:attributes) do
+    for {:index_entries, [entry]} <- Entry.module_info(:attributes) do
       entry
     end
   end
 
-  describe "index/1" do
+  describe "index/2" do
     test "defaults to empty list" do
       assert {Alfa, []} in entries()
     end
@@ -51,19 +99,19 @@ defmodule IndexTest do
     end
 
     test "supports aliases at module level" do
-      assert {Alfa, with: IndexTest.TestModule.Nested} in entries()
+      assert {Alfa, with: IndexTest.Entry.Nested} in entries()
     end
 
     test "supports aliases within function" do
-      assert {Bravo, with: IndexTest.TestModule.Nested} in entries()
+      assert {Bravo, with: IndexTest.Entry.Nested} in entries()
     end
 
     test "supports __MODULE__ at module level" do
-      assert {Alfa, with: IndexTest.TestModule} in entries()
+      assert {Alfa, with: IndexTest.Entry} in entries()
     end
 
     test "supports __MODULE__ within function" do
-      assert {Bravo, with: IndexTest.TestModule} in entries()
+      assert {Bravo, with: IndexTest.Entry} in entries()
     end
 
     test "supports module attributes at module level" do
