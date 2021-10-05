@@ -1,38 +1,36 @@
 defmodule IndexTest do
   use ExUnit.Case, async: true
 
-  {:module, IndexTest.TestModule, beam, _} =
-    defmodule TestModule do
-      import Index, only: [index: 1, index: 2]
-      alias IndexTest.TestModule.Nested
+  defmodule TestModule do
+    import Index, only: [index: 1, index: 2]
+    alias IndexTest.TestModule.Nested
 
-      @attr "some attr"
-      var = "some var"
+    @attr "some attr"
+    var = "some var"
 
-      index Alfa
-      index Alfa, %{with: %{complex: "args"}}
-      index Alfa, with: Nested
-      index Alfa, with: __MODULE__
-      index Alfa, with: @attr
-      index Alfa, with: var
-      index {Charlie, "echo"}, "complex index"
+    index Alfa
+    index Alfa, %{with: %{complex: "args"}}
+    index Alfa, with: Nested
+    index Alfa, with: __MODULE__
+    index Alfa, with: @attr
+    index Alfa, with: var
+    index {Charlie, "echo"}, "complex index"
 
-      def f(x) do
-        index Bravo
-        index Bravo, %{with: %{complex: "args"}}
-        index Bravo, with: Nested
-        index Bravo, with: __MODULE__
-        index Bravo, with: @attr
-        index {Charlie, "delta"}, "complex index"
-        x
-      end
+    def f(x) do
+      index Bravo
+      index Bravo, %{with: %{complex: "args"}}
+      index Bravo, with: Nested
+      index Bravo, with: __MODULE__
+      index Bravo, with: @attr
+      index {Charlie, "delta"}, "complex index"
+      x
     end
-
-  @beam beam
+  end
 
   defp entries do
-    {:ok, {IndexTest.TestModule, attributes: attrs}} = :beam_lib.chunks(@beam, [:attributes])
-    attrs[:index_entries]
+    for {:index_entries, [entry]} <- TestModule.module_info(:attributes) do
+      entry
+    end
   end
 
   describe "index/1" do
