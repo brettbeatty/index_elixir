@@ -17,13 +17,13 @@ defmodule Index do
 
   """
   defmacro fetch(index) do
+    unless Module.has_attribute?(__CALLER__.module, :index_recompile?) do
+      Module.register_attribute(__CALLER__.module, :index_recompile?, persist: true)
+      Module.put_attribute(__CALLER__.module, :index_recompile?, true)
+    end
+
     case :ets.whereis(Index.Indices) do
       :undefined ->
-        unless Module.has_attribute?(__CALLER__.module, :index_recompile?) do
-          Module.register_attribute(__CALLER__.module, :index_recompile?, persist: true)
-          Module.put_attribute(__CALLER__.module, :index_recompile?, true)
-        end
-
         quote do
           # don't warn if index unused
           _ = unquote(index)
