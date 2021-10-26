@@ -38,9 +38,15 @@ defmodule Mix.Tasks.Compile.Index do
     Index.Indices = :ets.new(Index.Indices, [:named_table])
     Enum.each(entries, fn {index, entries} -> :ets.insert(Index.Indices, {index, entries}) end)
 
+    ignore_module_conflict = Code.get_compiler_option(:ignore_module_conflict)
+    Code.put_compiler_option(:ignore_module_conflict, true)
+
     to_recompile
+    |> Enum.uniq()
     |> Enum.map(&purge_and_get_source/1)
-    |> Kernel.ParallelCompiler.compile_to_path(Mix.Project.compile_path())
+    |> Kernel.ParallelCompiler.compile_to_path(Mix.Project.consolidation_path())
+
+    Code.put_compiler_option(:ignore_module_conflict, ignore_module_conflict)
 
     :ok
   end
@@ -69,12 +75,6 @@ defmodule Mix.Tasks.Compile.Index do
 
   defp purge_and_get_source(module) do
     source = module.module_info(:compile)[:source]
-
-    beam_file = :code.which(module)
-
-    if :filename.extension(beam_file) == '.beam' do
-      File.rm!(beam_file)
-    end
 
     :code.purge(module)
     :code.delete(module)
