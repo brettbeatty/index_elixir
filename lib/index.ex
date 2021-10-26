@@ -62,27 +62,27 @@ defmodule Index do
   ## Examples
 
       defmodule MyApp.SomeModule do
-        import Index, only: [index: 1, index: 2]
+        require Index
 
-        index MyApp.MyIndex
+        Index.put(MyApp.MyIndex, [])
 
         def do_something do
-          index MyApp.MyIndex, "some value"
+          Index.put(MyApp.MyIndex, "some value")
           # ...
         end
       end
 
       defmodule MyApp.AnotherModule do
-        import Index, only: [index: 2]
+        require Index
 
         def do_something(more) do
-          index MyApp.MyIndex, more
+          Index.put(MyApp.MyIndex, more)
         end
       end
-      # => ** (RuntimeError) only literals may be indexed inside functions
+      # => ** (RuntimeError) only compile-time values allowed with Index macros
 
   """
-  defmacro index(index, value \\ []) do
+  defmacro put(index, value) do
     unless Module.has_attribute?(__CALLER__.module, :index_entries) do
       Module.register_attribute(__CALLER__.module, :index_entries, accumulate: true, persist: true)
     end
@@ -110,7 +110,7 @@ defmodule Index do
       {entry, []} = Code.eval_quoted(ast, [], env)
       entry
     else
-      raise "only literals may be indexed inside functions"
+      raise "only compile-time values allowed with Index macros"
     end
   end
 end

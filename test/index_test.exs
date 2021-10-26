@@ -1,5 +1,5 @@
 defmodule IndexTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   defp define_fetch_test_module! do
     :code.purge(IndexTest.Fetch)
@@ -50,27 +50,25 @@ defmodule IndexTest do
   end
 
   defmodule Entry do
-    import Index, only: [index: 1, index: 2]
+    require Index
     alias IndexTest.Entry.Nested
 
     @attr "some attr"
     var = "some var"
 
-    index Alfa
-    index Alfa, %{with: %{complex: "args"}}
-    index Alfa, with: Nested
-    index Alfa, with: __MODULE__
-    index Alfa, with: @attr
-    index Alfa, with: var
-    index {Charlie, "echo"}, "complex index"
+    Index.put(Alfa, %{with: %{complex: "args"}})
+    Index.put(Alfa, with: Nested)
+    Index.put(Alfa, with: __MODULE__)
+    Index.put(Alfa, with: @attr)
+    Index.put(Alfa, with: var)
+    Index.put({Charlie, "echo"}, "complex index")
 
     def f(x) do
-      index Bravo
-      index Bravo, %{with: %{complex: "args"}}
-      index Bravo, with: Nested
-      index Bravo, with: __MODULE__
-      index Bravo, with: @attr
-      index {Charlie, "delta"}, "complex index"
+      Index.put(Bravo, %{with: %{complex: "args"}})
+      Index.put(Bravo, with: Nested)
+      Index.put(Bravo, with: __MODULE__)
+      Index.put(Bravo, with: @attr)
+      Index.put({Charlie, "delta"}, "complex index")
       x
     end
   end
@@ -81,15 +79,7 @@ defmodule IndexTest do
     end
   end
 
-  describe "index/2" do
-    test "defaults to empty list" do
-      assert {Alfa, []} in entries()
-    end
-
-    test "allows indexing within function" do
-      assert {Bravo, []} in entries()
-    end
-
+  describe "put/2" do
     test "supports complex values at module level" do
       assert {Alfa, %{with: %{complex: "args"}}} in entries()
     end
