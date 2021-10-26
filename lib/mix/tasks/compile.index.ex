@@ -1,4 +1,11 @@
 defmodule Mix.Tasks.Compile.Index do
+  @shortdoc "Compile indices"
+  @moduledoc """
+  Compile indices with entries from source files.
+
+  Indices are accessed via `Index.fetch/1` and `Index.get/2`, which trigger recompilation of the
+  modules in which they are used at this stage with the index entries available.
+  """
   use Mix.Task.Compiler
 
   @impl Mix.Task.Compiler
