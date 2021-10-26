@@ -13,7 +13,7 @@ defmodule Index do
   ## Examples
 
       Index.fetch(MyApp.MyIndex)
-      # => {:ok, [{MyApp.SomeModule, []}, {MyApp.SomeModule, "some value"}]}
+      #=> {:ok, [{MyApp.SomeModule, []}, {MyApp.SomeModule, "some value"}]}
 
   """
   defmacro fetch(index) do
@@ -22,29 +22,54 @@ defmodule Index do
       Module.put_attribute(__CALLER__.module, :index_recompile?, true)
     end
 
-    case :ets.whereis(Index.Indices) do
-      :undefined ->
-        quote do
-          # don't warn if index unused
-          _ = unquote(index)
-          :error
-        end
+    if __CALLER__.function do
+      index
+      |> expand(__CALLER__)
+      |> __fetch__()
+      |> Macro.escape()
+    else
+      quote do
+        Index.__fetch__(unquote(index))
+      end
+    end
+  end
 
-      ref when is_reference(ref) ->
-        quote do
-          index = unquote(index)
+  def __fetch__(index) do
+    entries =
+      case :ets.lookup(Index.Indices, index) do
+        [{^index, entries}] ->
+          entries
 
-          entries =
-            case :ets.lookup(Index.Indices, index) do
-              [{^index, entries}] ->
-                entries
+        [] ->
+          []
+      end
 
-              [] ->
-                []
-            end
+    {:ok, entries}
+  rescue
+    ArgumentError ->
+      :error
+  end
 
-          {:ok, entries}
-        end
+  @doc """
+  Get entries from `index`.
+
+  Same as `fetch/1`, except it returns entries or default instead of `:ok`/`:error` tuples.
+
+  ## Examples
+
+      Index.get(MyApp.MyIndex)
+      #=> []
+
+  """
+  defmacro get(index, default \\ []) do
+    quote do
+      case Index.fetch(unquote(index)) do
+        {:ok, entries} ->
+          entries
+
+        :error ->
+          unquote(default)
+      end
     end
   end
 
@@ -79,7 +104,7 @@ defmodule Index do
           Index.put(MyApp.MyIndex, more)
         end
       end
-      # => ** (RuntimeError) only compile-time values allowed with Index macros
+      #=> ** (RuntimeError) only compile-time values allowed with Index macros
 
   """
   defmacro put(index, value) do
@@ -107,8 +132,8 @@ defmodule Index do
       end)
 
     if Macro.quoted_literal?(ast) do
-      {entry, []} = Code.eval_quoted(ast, [], env)
-      entry
+      {value, []} = Code.eval_quoted(ast, [], env)
+      value
     else
       raise "only compile-time values allowed with Index macros"
     end
