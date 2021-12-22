@@ -48,6 +48,8 @@ defmodule Mix.Tasks.Compile.Index do
     ignore_module_conflict = Code.get_compiler_option(:ignore_module_conflict)
     Code.put_compiler_option(:ignore_module_conflict, true)
 
+    File.mkdir_p!(Mix.Project.consolidation_path())
+
     to_recompile
     |> Enum.uniq()
     |> Enum.map(&purge_and_get_source/1)
