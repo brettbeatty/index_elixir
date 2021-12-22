@@ -121,6 +121,7 @@ defmodule Index do
     end
   end
 
+  @spec expand(Macro.t(), Macro.Env.t()) :: term() | no_return()
   defp expand(ast, env) do
     ast =
       Macro.postwalk(ast, fn

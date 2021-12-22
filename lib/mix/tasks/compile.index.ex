@@ -58,6 +58,7 @@ defmodule Mix.Tasks.Compile.Index do
     :ok
   end
 
+  @spec ls(charlist()) :: [charlist()]
   defp ls(dir) do
     case :file.list_dir(dir) do
       {:ok, files} ->
@@ -68,6 +69,7 @@ defmodule Mix.Tasks.Compile.Index do
     end
   end
 
+  @spec get_attrs(charlist(), charlist()) :: [{module(), [term()]}]
   defp get_attrs(dir, file) do
     filename = :filename.join(dir, file)
 
@@ -80,6 +82,7 @@ defmodule Mix.Tasks.Compile.Index do
     end
   end
 
+  @spec purge_and_get_source(module()) :: charlist()
   defp purge_and_get_source(module) do
     source = module.module_info(:compile)[:source]
 
